@@ -14,6 +14,11 @@
     d = groundTileDeep.png   (deep ground, below surface)
       = empty (no sprite)
 */
+// Side quest
+let sonsor;
+let dusts = [];
+let wasGrounded = false;
+let landingSound;
 
 let player;
 let playerImg, bgImg;
@@ -29,7 +34,7 @@ let ground, groundDeep;
 let groundImg, groundDeepImg;
 
 let attacking = false; // track if the player is attacking
-let attackFrameCounter = 0;  // tracking attack animation
+let attackFrameCounter = 0; // tracking attack animation
 
 // --- TILE MAP ---
 // an array that uses the tile key to create the level
@@ -69,6 +74,9 @@ function preload() {
   bgImg = loadImage("assets/combinedBackground.png");
   groundImg = loadImage("assets/groundTile.png");
   groundDeepImg = loadImage("assets/groundTileDeep.png");
+
+  // --- SOUNDS ---
+  landingSound = loadSound("assets/sidequest_W6_sound.mp3");
 }
 
 function setup() {
@@ -123,6 +131,38 @@ function setup() {
   sensorJoint.visible = false;
 }
 
+function spawnLandingDust(x, y) {
+  for (let i = 0; i < 6; i++) {
+    dusts.push({
+      x: x + random(-6, 6),
+      y: y,
+      vx: random(-1.2, 1.2),
+      vy: random(-1.5, -0.5),
+      side: random(3, 5),
+      life: 20,
+    });
+  }
+}
+
+function updateLandingDust() {
+  noStroke();
+
+  for (let i = dusts.length - 1; i >= 0; i--) {
+    let d = dusts[i];
+    d.x += d.vx;
+    d.y += d.vy;
+    d.vy += 0.05; // gravity effect on dust
+    d.life--;
+
+    fill(230, 210, 170, d.life * 10); // fade out over time
+    ellipse(d.x, d.y, d.side);
+
+    if (d.life <= 0) {
+      dusts.splice(i, 1); // remove dust when life is over
+    }
+  }
+}
+
 function draw() {
   // --- BACKGROUND ---
   camera.off();
@@ -134,6 +174,14 @@ function draw() {
   // first check to see if the player is on the ground
   let grounded = sensor.overlapping(ground);
 
+  // --- Landing effects ---
+  if (!wasGrounded && grounded && player.vel.y > 0) {
+    spawnLandingDust(player.x, player.y + player.h / 2);
+    if (landingSound && landingSound.isLoaded()) {
+      landingSound.play();
+    }
+  }
+
   // -- ATTACK INPUT --
   if (grounded && !attacking && kb.presses("space")) {
     attacking = true;
@@ -141,7 +189,7 @@ function draw() {
     player.vel.x = 0;
     player.ani.frame = 0;
     player.ani = "attack";
-    player.ani.play();  // plays once to end
+    player.ani.play(); // plays once to end
   }
 
   // -- JUMP --
@@ -178,4 +226,8 @@ function draw() {
 
   // --- KEEP IN VIEW ---
   player.pos.x = constrain(player.pos.x, FRAME_W / 2, VIEWW - FRAME_W / 2);
+
+  // --- Dust update ---
+  updateLandingDust();
+  wasGrounded = grounded;
 }
