@@ -15,7 +15,7 @@
       = empty (no sprite)
 */
 // Side quest
-let sensor;
+let sonsor;
 let dusts = [];
 let wasGrounded = false;
 let landingSound;
