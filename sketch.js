@@ -14,7 +14,7 @@
     d = groundTileDeep.png   (deep ground, below surface)
       = empty (no sprite)
 */
-// Side quest
+// Side quest 6
 let sensor;
 let dusts = [];
 let wasGrounded = false;
@@ -35,6 +35,17 @@ let groundImg, groundDeepImg;
 
 let attacking = false; // track if the player is attacking
 let attackFrameCounter = 0; // tracking attack animation
+
+// Side quest 9
+let debugMode = true;
+let moonGravity = false;
+
+const NORMAL_GRAVITY = 10;
+const MOON_GRAVITY = 3;
+
+let strawberries;
+let strawberryImg;
+let score = 0;
 
 // --- TILE MAP ---
 // an array that uses the tile key to create the level
@@ -74,6 +85,7 @@ function preload() {
   bgImg = loadImage("assets/combinedBackground.png");
   groundImg = loadImage("assets/groundTile.png");
   groundDeepImg = loadImage("assets/groundTileDeep.png");
+  strawberryImg = loadImage("assets/strawberry_pixel.png");
 
   // --- SOUNDS ---
   landingSound = loadSound("assets/sidequest_W6_sound.mp3");
@@ -90,7 +102,7 @@ function setup() {
 
   // --- TILE GROUPS ---
   ground = new Group();
-  ground.physics = "static";
+  ground.collider = "static";
   ground.img = groundImg;
   ground.tile = "g";
 
@@ -125,10 +137,20 @@ function setup() {
   sensor.w = player.w;
   sensor.h = 2;
   sensor.mass = 0.01;
-  sensor.removeColliders();
+  sensor.overlaps(ground);
   sensor.visible = false;
   let sensorJoint = new GlueJoint(player, sensor);
   sensorJoint.visible = false;
+
+  // --- Strawberry sprites ---
+  strawberries = new Group();
+  strawberries.collider = "static";
+  strawberries.img = strawberryImg;
+  strawberries.scale = 0.05;
+
+  new strawberries.Sprite(100, 100);
+  new strawberries.Sprite(200, 80);
+  new strawberries.Sprite(280, 100);
 }
 
 function spawnLandingDust(x, y) {
@@ -167,12 +189,37 @@ function draw() {
   // --- BACKGROUND ---
   camera.off();
   imageMode(CORNER);
-  image(bgImg, 0, 0, bgImg.width, bgImg.height);
+  image(bgImg, 0, 0, VIEWW, VIEWH);
+
+  // --- SCORE PANEL ---
+  push();
+  fill(255);
+  textSize(8);
+  textAlign(LEFT, TOP);
+  text("Score: " + score, 10, 10);
+  pop();
+
   camera.on();
+
+  // --- DEBUG CONTROLS ---
+  if (kb.presses("d")) {
+    debugMode = !debugMode;
+  }
+  if (kb.presses("g")) {
+    moonGravity = !moonGravity;
+  }
+
+  // --- GRAVITY TOGGLING ---
+  world.gravity.y = moonGravity ? MOON_GRAVITY : NORMAL_GRAVITY;
 
   // --- PLAYER CONTROLS ---
   // first check to see if the player is on the ground
   let grounded = sensor.overlapping(ground);
+
+  player.overlaps(strawberries, (player, berry) => {
+    berry.remove();
+    score++;
+  });
 
   // --- Landing effects ---
   if (!wasGrounded && grounded && player.vel.y > 0) {
@@ -230,4 +277,21 @@ function draw() {
   // --- Dust update ---
   updateLandingDust();
   wasGrounded = grounded;
+
+  //--- DEBUG PANEL ---
+  if (debugMode) {
+    camera.off();
+
+    fill(0, 150);
+    rect(5, 5, 120, 60);
+
+    fill(255);
+    textSize(8);
+    textAlign(LEFT, TOP);
+    text("DEBUG MODE", 10, 20);
+    text("G: Moon Gravity:" + (moonGravity ? "ON" : "OFF"), 10, 35);
+    text("D: Toggle Debug", 10, 50);
+
+    camera.on();
+  }
 }
